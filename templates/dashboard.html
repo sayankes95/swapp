@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SWAPP - Dashboard</title>
+    <meta name="description" content="Student Wellness & Academic Performance Predictor - Your personalized dashboard.">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="orb-2"></div>
+    <div class="stickers">
+        <span class="sticker">📚</span><span class="sticker">✏️</span>
+        <span class="sticker">📝</span><span class="sticker">🎒</span>
+        <span class="sticker">📖</span><span class="sticker">🔬</span>
+        <span class="sticker">🧪</span><span class="sticker">📐</span>
+        <span class="sticker">🎯</span><span class="sticker">💡</span>
+    </div>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <h2>📊 Dashboard
+                    {% if profile %}<span class="profile-badge">Sem {{ profile['semester'] }}</span>{% endif %}
+                </h2>
+                <p class="welcome-text">Welcome back, <strong>{{ user_name }}</strong>
+                    {% if profile and profile['branch'] %} · {{ profile['branch'] }}{% endif %}!
+                </p>
+            </div>
+            <div class="nav-links">
+                <a href="/profile" class="btn-outline">👤 Profile</a>
+                <a href="/academics" class="btn-outline">🎓 Academics</a>
+                <a href="/weekly_report" class="btn-outline">📋 Weekly Report</a>
+                <a href="/add_data" class="btn-primary">+ Add Data</a>
+                <a href="/logout" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+
+        <!-- BURNOUT ALERT BANNER -->
+        {% if burnout and burnout.detected %}
+        <div class="burnout-banner {% if burnout.severity == 'Critical' %}burnout-critical{% else %}burnout-warn{% endif %}">
+            <span class="burnout-icon">🔥</span>
+            <div class="burnout-text">
+                <strong>{{ burnout.severity }} Burnout Risk Detected</strong>
+                <p>{{ burnout.message }}</p>
+                <span class="burnout-stats">{{ burnout.high_stress_days }} high-stress days &nbsp;|&nbsp; Avg sleep: {{ burnout.avg_sleep }} hrs</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- TOP 6-CARD GRID -->
+        <div class="dash-top-grid">
+            <!-- Stress Score -->
+            <div class="top-card" style="--tc: {{ stress_color }};">
+                <div class="top-card-icon">🧠</div>
+                <div class="top-card-value" style="color:{{ stress_color }};">{{ stats['avg_stress'] if stats['avg_stress'] else '—' }}</div>
+                <div class="top-card-label" style="color:{{ stress_color }};">{{ stress_label }} Stress</div>
+                <div class="top-card-sub">Avg Score / 100</div>
+            </div>
+
+            <!-- Productivity -->
+            {% if productivity %}
+            <div class="top-card" style="--tc: {{ productivity.color }};">
+                <div class="top-card-icon">⚡</div>
+                <div class="top-card-value" style="color:{{ productivity.color }};">{{ productivity.score }}</div>
+                <div class="top-card-label" style="color:{{ productivity.color }};">{{ productivity.tier }}</div>
+                <div class="top-card-sub">Today's Productivity / 100</div>
+            </div>
+            {% else %}
+            <div class="top-card" style="--tc:#666;">
+                <div class="top-card-icon">⚡</div>
+                <div class="top-card-value">—</div>
+                <div class="top-card-label">Productivity</div>
+                <div class="top-card-sub">Add data to track</div>
+            </div>
+            {% endif %}
+
+            <!-- Avg Attendance -->
+            <div class="top-card" style="--tc:#22c55e;">
+                <div class="top-card-icon">✅</div>
+                <div class="top-card-value" style="color:#22c55e;">{{ stats['avg_attendance'] if stats['avg_attendance'] else '—' }}{% if stats['avg_attendance'] %}%{% endif %}</div>
+                <div class="top-card-label" style="color:#22c55e;">Avg Attendance</div>
+                <div class="top-card-sub">Class attendance %</div>
+            </div>
+
+            <!-- Academic Risk -->
+            {% if risk %}
+            <div class="top-card" style="--tc:{{ risk.color }};">
+                <div class="top-card-icon">{{ risk.icon }}</div>
+                <div class="top-card-value" style="color:{{ risk.color }};">{{ risk.risk }}</div>
+                <div class="top-card-label" style="color:{{ risk.color }};">Academic Risk</div>
+                <div class="top-card-sub">Score Drop Prob: {{ risk.drop_prob }}%</div>
+            </div>
+            {% else %}
+            <div class="top-card" style="--tc:#666;">
+                <div class="top-card-icon">📉</div>
+                <div class="top-card-value">—</div>
+                <div class="top-card-label">Academic Risk</div>
+                <div class="top-card-sub">Add data to track</div>
+            </div>
+            {% endif %}
+
+            <!-- Avg Sleep -->
+            <div class="top-card" style="--tc:#00c8ff;">
+                <div class="top-card-icon">😴</div>
+                <div class="top-card-value" style="color:#00c8ff;">{{ stats['avg_sleep'] if stats['avg_sleep'] else '—' }}</div>
+                <div class="top-card-label" style="color:#00c8ff;">Avg Sleep</div>
+                <div class="top-card-sub">Hours per night</div>
+            </div>
+
+            <!-- Avg Study -->
+            <div class="top-card" style="--tc:#f59e0b;">
+                <div class="top-card-icon">📚</div>
+                <div class="top-card-value" style="color:#f59e0b;">{{ stats['avg_study'] if stats['avg_study'] else '—' }}</div>
+                <div class="top-card-label" style="color:#f59e0b;">Avg Study</div>
+                <div class="top-card-sub">Hours per day</div>
+            </div>
+        </div>
+
+        <!-- MOTIVATIONAL QUOTE -->
+        {% if quote %}
+        <div class="quote-card">
+            <span class="quote-icon">💬</span>
+            <div>
+                <p class="quote-text">"{{ quote.text }}"</p>
+                <p class="quote-author">— {{ quote.author }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ACADEMIC RISK ADVICE -->
+        {% if risk %}
+        <div class="risk-advice-card" style="border-color:{{ risk.color }};">
+            <span class="risk-icon-big">{{ risk.icon }}</span>
+            <div>
+                <div class="risk-title">Academic Risk — <span style="color:{{ risk.color }}">{{ risk.risk }}</span></div>
+                <div class="risk-drop">Probability of Score Drop: <strong style="color:{{ risk.color }}">{{ risk.drop_prob }}%</strong></div>
+                <div class="risk-tip">{{ risk.advice }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ML Performance Prediction Banner -->
+        {% if prediction %}
+        <div class="prediction-banner" style="border-color: {{ prediction.color }};">
+            <div class="prediction-left">
+                <span class="prediction-emoji">{{ prediction.emoji }}</span>
+                <div>
+                    <div class="prediction-label">🤖 AI Performance Prediction (Random Forest)</div>
+                    <div class="prediction-value" style="color: {{ prediction.color }};">{{ prediction.label }}</div>
+                </div>
+            </div>
+            <div class="prediction-right">
+                <div class="confidence-ring" style="--c: {{ prediction.color }}; background: conic-gradient({{ prediction.color }} {{ prediction.confidence }}%, rgba(255,255,255,0.06) 0%)">
+                    <span>{{ prediction.confidence }}%</span>
+                    <small>confidence</small>
+                </div>
+                <div class="prediction-tip">💡 {{ prediction.tip }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ANN Stress Prediction Card -->
+        {% if ann %}
+        <div class="ann-card" style="border-color: {{ ann.color }};">
+            <div class="ann-left">
+                <span class="ann-emoji">{{ ann.emoji }}</span>
+                <div>
+                    <div class="ann-label">🧠 ANN Stress Classifier (Neural Network · 64→32 neurons)</div>
+                    <div class="ann-value" style="color: {{ ann.color }};">{{ ann.label }} Stress</div>
+                    <div class="ann-tip">{{ ann.tip }}</div>
+                </div>
+            </div>
+            <div class="confidence-ring" style="--c: {{ ann.color }}; background: conic-gradient({{ ann.color }} {{ ann.confidence }}%, rgba(255,255,255,0.06) 0%)">
+                <span>{{ ann.confidence }}%</span>
+                <small>confidence</small>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- STUDY PATTERN INSIGHTS -->
+        {% if patterns %}
+        <div class="patterns-card">
+            <div class="patterns-title">🔍 Study Pattern Insights</div>
+            <div class="patterns-grid">
+                <div class="pattern-item">
+                    <div class="pattern-icon">📅</div>
+                    <div class="pattern-value">{{ patterns.best_day }}</div>
+                    <div class="pattern-label">Most Productive Day</div>
+                </div>
+                <div class="pattern-item">
+                    <div class="pattern-icon">⏱️</div>
+                    <div class="pattern-value">{{ patterns.avg_focus }} hrs</div>
+                    <div class="pattern-label">Avg Focus Time</div>
+                </div>
+                <div class="pattern-item">
+                    <div class="pattern-icon">📊</div>
+                    <div class="pattern-value">{{ patterns.consistency }}%</div>
+                    <div class="pattern-label">Study Consistency</div>
+                </div>
+                <div class="pattern-item">
+                    <div class="pattern-icon">📈</div>
+                    <div class="pattern-value">{{ patterns.trend }}</div>
+                    <div class="pattern-label">Weekly Trend</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 7-DAY CHARTS -->
+        {% if chart_stress %}
+        <div class="charts-two-col" style="margin-top:0;">
+            <div class="chart-card">
+                <h3>📈 Stress Level Trend</h3>
+                <canvas id="stressChart" height="160"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>⚡ Productivity Trend</h3>
+                <canvas id="productivityChart" height="160"></canvas>
+            </div>
+        </div>
+
+        <div class="charts-two-col">
+            <div class="chart-card">
+                <h3>📚 Study vs Sleep Hours</h3>
+                <canvas id="studySleepChart" height="160"></canvas>
+            </div>
+        {% if (monthly.labels | length) > 1 %}
+            <div class="chart-card">
+                <h3>🗓 Monthly Stress Trend</h3>
+                <canvas id="monthlyStressChart" height="160"></canvas>
+            </div>
+            {% else %}
+            <div class="chart-card">
+                <h3>📊 Attendance Overview</h3>
+                <canvas id="attendanceChart" height="160"></canvas>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if consistency and consistency | length > 1 %}
+        <div class="chart-card" style="margin-top:20px;">
+            <h3>🔥 Study Consistency — Last 14 Days</h3>
+            <canvas id="consistencyChart" height="100"></canvas>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="chart-card">
+            <h3>📈 Stress Level Trend</h3>
+            <p style="text-align:center;color:#888;padding:40px 0;">
+                No data yet! Click <a href="/add_data" style="color:#ff6eb4;">+ Add Data</a> to start tracking.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Recent Entries Table -->
+        {% if entries %}
+        <div class="chart-card" style="margin-top:20px;">
+            <h3>📋 Recent Entries</h3>
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+                    <thead>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                            <th style="padding:10px;text-align:left;color:#aaa;font-size:11px;text-transform:uppercase;">Date</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">😴</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">📚</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">📱</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">📋</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">📊 Attend.</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">🧠 Stress</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">⚡ Prod.</th>
+                            <th style="padding:10px;text-align:center;color:#aaa;font-size:11px;">🤖 AI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        {% set prod = (entry['study_hours'] * 10) + entry['attendance'] - ((entry['stress_score'] or 0) * 0.5) + (entry['sleep_hours'] * 3) - (entry['screen_time'] * 2) %}
+                        {% set prod_clamped = [[prod, 0] | max, 100] | min %}
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                            <td style="padding:10px;color:#ccc;font-size:13px;">{{ entry['date'] }}</td>
+                            <td style="padding:10px;text-align:center;color:#00c8ff;">{{ entry['sleep_hours'] }}</td>
+                            <td style="padding:10px;text-align:center;color:#f59e0b;">{{ entry['study_hours'] }}</td>
+                            <td style="padding:10px;text-align:center;color:#f97316;">{{ entry['screen_time'] }}</td>
+                            <td style="padding:10px;text-align:center;color:#fff;">{{ entry['assignments'] }}</td>
+                            <td style="padding:10px;text-align:center;color:#fff;">{{ entry['attendance'] }}%</td>
+                            <td style="padding:10px;text-align:center;font-weight:600;">{{ entry['stress_score'] if entry['stress_score'] else '—' }}</td>
+                            <td style="padding:10px;text-align:center;color:#a78bfa;font-weight:600;">{{ prod_clamped | round | int }}</td>
+                            <td style="padding:10px;text-align:center;font-size:12px;color:#ff6eb4;">{{ entry['predicted_performance'] if entry['predicted_performance'] else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if chart_stress %}
+    <script>
+        const labels = {{ chart_labels | tojson }};
+        const stressData = {{ chart_stress | tojson }};
+        const studyData  = {{ chart_study  | tojson }};
+        const sleepData  = {{ chart_sleep  | tojson }};
+        const prodData   = {{ chart_productivity | tojson }};
+
+        function makeGrad(ctx, color) {
+            const g = ctx.createLinearGradient(0, 0, 0, 200);
+            g.addColorStop(0, color + '55'); g.addColorStop(1, color + '00');
+            return g;
+        }
+        const baseOpts = {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { labels: { color: '#aaa', font: { family: 'Poppins', size: 11 } } } },
+            scales: {
+                x: { ticks: { color: '#777', font: { family: 'Poppins', size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                y: { ticks: { color: '#777', font: { family: 'Poppins', size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+            }
+        };
+
+        // Stress Chart
+        (function(){
+            const ctx = document.getElementById('stressChart').getContext('2d');
+            new Chart(ctx, { type:'line', data:{ labels, datasets:[{
+                label:'Stress Score', data:stressData, borderColor:'#ef4444',
+                backgroundColor: makeGrad(ctx,'#ef4444'), fill:true, tension:0.4,
+                pointBackgroundColor:'#ef4444', pointBorderColor:'#1a1a2e', pointBorderWidth:2, pointRadius:5
+            }]}, options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, max:100}}} });
+        })();
+
+        // Productivity Chart
+        (function(){
+            const ctx = document.getElementById('productivityChart').getContext('2d');
+            new Chart(ctx, { type:'line', data:{ labels, datasets:[{
+                label:'Productivity', data:prodData, borderColor:'#a78bfa',
+                backgroundColor: makeGrad(ctx,'#a78bfa'), fill:true, tension:0.4,
+                pointBackgroundColor:'#a78bfa', pointBorderColor:'#1a1a2e', pointBorderWidth:2, pointRadius:5
+            }]}, options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, max:100}}} });
+        })();
+
+        // Study vs Sleep Chart
+        (function(){
+            const ctx = document.getElementById('studySleepChart').getContext('2d');
+            new Chart(ctx, { type:'line', data:{ labels, datasets:[
+                { label:'Study Hrs', data:studyData, borderColor:'#00c8ff', backgroundColor:'transparent', borderWidth:2.5, tension:0.4, pointBackgroundColor:'#00c8ff', pointBorderColor:'#1a1a2e', pointBorderWidth:2, pointRadius:5 },
+                { label:'Sleep Hrs', data:sleepData, borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2.5, tension:0.4, pointBackgroundColor:'#22c55e', pointBorderColor:'#1a1a2e', pointBorderWidth:2, pointRadius:5 }
+            ]}, options:baseOpts });
+        })();
+
+        {% if monthly and monthly.labels | length > 1 %}
+        // Monthly Stress Chart
+        (function(){
+            const ctx = document.getElementById('monthlyStressChart').getContext('2d');
+            new Chart(ctx, { type:'bar', data:{ labels: {{ monthly.labels | tojson }}, datasets:[{
+                label:'Avg Stress', data: {{ monthly.avg_stress | tojson }},
+                backgroundColor:'rgba(239,68,68,0.5)', borderColor:'#ef4444', borderWidth:2, borderRadius:6
+            }]}, options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, max:100}}} });
+        })();
+        {% else %}
+        // Attendance placeholder
+        (function(){
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            new Chart(ctx, { type:'line', data:{ labels, datasets:[{
+                label:'Attendance %', data: {{ chart_stress | tojson }}.map((_,i) => null),
+                borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2, tension:0.4
+            }]}, options:baseOpts });
+        })();
+        {% endif %}
+
+        {% if consistency and consistency | length > 1 %}
+        // Consistency Chart
+        (function(){
+            const cData = {{ consistency | tojson }};
+            const cLabels = cData.map(d => d.date);
+            const cVals   = cData.map(d => d.study);
+            const ctx = document.getElementById('consistencyChart').getContext('2d');
+            new Chart(ctx, { type:'bar', data:{ labels:cLabels, datasets:[{
+                label:'Study Hrs', data:cVals,
+                backgroundColor: cVals.map(v => v >= 5 ? '#22c55e99' : v >= 3 ? '#f59e0b99' : '#ef444499'),
+                borderColor:     cVals.map(v => v >= 5 ? '#22c55e'   : v >= 3 ? '#f59e0b'   : '#ef4444'),
+                borderWidth:2, borderRadius:6
+            }]}, options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, suggestedMax:10}}} });
+        })();
+        {% endif %}
+    </script>
+    {% endif %}
+</body>
+</html>

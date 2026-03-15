@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SWAPP - Weekly Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="orb-2"></div>
+    <div class="stickers">
+        <span class="sticker">📚</span><span class="sticker">✏️</span>
+        <span class="sticker">📝</span><span class="sticker">🎒</span>
+    </div>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <h2>📋 Weekly Report</h2>
+                <p class="welcome-text">Last 7 days summary for {{ user_name }}</p>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard" class="btn-primary">📊 Dashboard</a>
+                <a href="/academics" class="btn-outline">🎓 Academics</a>
+                <a href="/logout" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+
+        {% if report %}
+        <!-- Summary Cards -->
+        <div class="weekly-summary-grid">
+            <div class="wk-card" style="--wc:#ef4444;">
+                <div class="wk-icon">🧠</div>
+                <div class="wk-value" style="color:#ef4444;">{{ report.avg_stress }}</div>
+                <div class="wk-label">Avg Stress</div>
+                <div class="wk-sub" style="color:#ef4444;">{{ report.stress_label }}</div>
+            </div>
+            <div class="wk-card" style="--wc:#00c8ff;">
+                <div class="wk-icon">📚</div>
+                <div class="wk-value" style="color:#00c8ff;">{{ report.avg_study }} hrs</div>
+                <div class="wk-label">Avg Study</div>
+                <div class="wk-sub">per day</div>
+            </div>
+            <div class="wk-card" style="--wc:#22c55e;">
+                <div class="wk-icon">😴</div>
+                <div class="wk-value" style="color:#22c55e;">{{ report.avg_sleep }} hrs</div>
+                <div class="wk-label">Avg Sleep</div>
+                <div class="wk-sub">per night</div>
+            </div>
+            <div class="wk-card" style="--wc:#f97316;">
+                <div class="wk-icon">📱</div>
+                <div class="wk-value" style="color:#f97316;">{{ report.avg_screen }} hrs</div>
+                <div class="wk-label">Avg Screen Time</div>
+                <div class="wk-sub">per day</div>
+            </div>
+        </div>
+
+        <!-- Subject Performance -->
+        {% if subject_avgs %}
+        <div class="chart-card" style="margin-top:20px;">
+            <h3>📚 Subject Performance This Week</h3>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
+                {% for subj, avg in subject_avgs.items() %}
+                {% if avg >= 75 %}{% set sc = '#22c55e' %}
+                {% elif avg >= 50 %}{% set sc = '#f59e0b' %}
+                {% else %}{% set sc = '#ef4444' %}{% endif %}
+                <div class="wk-subject-row">
+                    <span style="color:#ccc; font-size:14px; min-width:120px;">{{ subj[:15] }}</span>
+                    <div style="flex:1; height:8px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden;">
+                        <div style="width:{{ avg }}%; height:100%; background:{{ sc }}; border-radius:4px; transition:width 1s;"></div>
+                    </div>
+                    <span style="color:{{ sc }}; font-weight:700; font-size:14px; min-width:50px; text-align:right;">{{ avg }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="display:flex; gap:20px; margin-top:16px;">
+                <span style="color:#22c55e; font-size:13px;">🏆 Strongest: <strong>{{ report.strongest }}</strong></span>
+                <span style="color:#ef4444; font-size:13px;">📉 Weakest: <strong>{{ report.weakest }}</strong></span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Weekly Trend Chart -->
+        {% if labels %}
+        <div class="chart-card" style="margin-top:20px;">
+            <h3>📈 Weekly Trend</h3>
+            <canvas id="weeklyTrendChart" height="120"></canvas>
+        </div>
+        {% endif %}
+
+        <!-- Recommendations -->
+        <div class="recommendations-card">
+            <h3>💡 Personalized Recommendations</h3>
+            <ul class="rec-list">
+                {% for rec in report.recommendations %}
+                <li>{{ rec }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <h4>No data for the past week!</h4>
+            <p>Add wellness entries to generate your weekly report.</p>
+            <a href="/add_data" class="btn-primary" style="display:inline-block;margin-top:16px;">+ Add Data</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if labels %}
+    <script>
+        const wkLabels  = {{ labels   | tojson }};
+        const wkStress  = {{ stresses | tojson }};
+        const wkStudy   = {{ studies  | tojson }};
+        const wkSleep   = {{ sleeps   | tojson }};
+        const wkProd    = {{ prods    | tojson }};
+        const ctx = document.getElementById('weeklyTrendChart').getContext('2d');
+        new Chart(ctx, { type:'line', data:{ labels:wkLabels, datasets:[
+            { label:'Stress',     data:wkStress, borderColor:'#ef4444', borderWidth:2, tension:0.4, fill:false, pointRadius:4 },
+            { label:'Study Hrs',  data:wkStudy,  borderColor:'#00c8ff', borderWidth:2, tension:0.4, fill:false, pointRadius:4 },
+            { label:'Sleep Hrs',  data:wkSleep,  borderColor:'#22c55e', borderWidth:2, tension:0.4, fill:false, pointRadius:4 },
+            { label:'Productivity', data:wkProd, borderColor:'#a78bfa', borderWidth:2, tension:0.4, fill:false, pointRadius:4 }
+        ]}, options:{ responsive:true, interaction:{mode:'index',intersect:false},
+            plugins:{legend:{labels:{color:'#aaa',font:{family:'Poppins',size:11}}}},
+            scales:{
+                x:{ticks:{color:'#777',font:{family:'Poppins',size:10}},grid:{color:'rgba(255,255,255,0.03)'}},
+                y:{ticks:{color:'#777',font:{family:'Poppins',size:10}},grid:{color:'rgba(255,255,255,0.04)'}}
+            }
+        }});
+    </script>
+    {% endif %}
+</body>
+</html>

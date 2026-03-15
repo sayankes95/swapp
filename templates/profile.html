@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SWAPP - My Profile</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="orb-2"></div>
+    <div class="stickers">
+        <span class="sticker">📚</span><span class="sticker">✏️</span>
+        <span class="sticker">📝</span><span class="sticker">🎒</span>
+        <span class="sticker">📖</span><span class="sticker">🔬</span>
+        <span class="sticker">🎓</span><span class="sticker">🏆</span>
+    </div>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <h2>👤 My Profile</h2>
+                <p class="welcome-text">Personal details and academic information</p>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard" class="btn-primary">📊 Dashboard</a>
+                <a href="/academics" class="btn-outline">🎓 Academics</a>
+                <a href="/weekly_report" class="btn-outline">📋 Report</a>
+                <a href="/logout" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+
+        {% if success %}<div class="success-msg">✅ {{ success }}</div>{% endif %}
+        {% if error   %}<div class="error-msg">⚠️ {{ error }}</div>{% endif %}
+
+        <!-- PROFILE HEADER CARD -->
+        <div class="profile-hero">
+            <div class="profile-avatar">{{ user_name[0].upper() }}</div>
+            <div class="profile-hero-info">
+                <h2 class="profile-name">{{ user_name }}</h2>
+                <p class="profile-email">📧 {{ user['email'] if user else '' }}</p>
+                {% if profile %}
+                <div class="profile-tags">
+                    {% if profile['branch'] %}<span class="ptag">🏛️ {{ profile['branch'] }}</span>{% endif %}
+                    {% if profile['semester'] %}<span class="ptag">📅 Semester {{ profile['semester'] }}</span>{% endif %}
+                    {% if profile['year'] %}<span class="ptag">📆 Year {{ profile['year'] }}</span>{% endif %}
+                    {% if profile['roll_no'] %}<span class="ptag">🔢 {{ profile['roll_no'] }}</span>{% endif %}
+                </div>
+                {% if profile['bio'] %}<p class="profile-bio">{{ profile['bio'] }}</p>{% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- QUICK STATS -->
+        <div class="profile-stats-grid">
+            <div class="pstat-card" style="--pc:#ff6eb4;">
+                <div class="pstat-icon">📊</div>
+                <div class="pstat-val">{{ total_entries }}</div>
+                <div class="pstat-label">Wellness Entries</div>
+            </div>
+            <div class="pstat-card" style="--pc:#00c8ff;">
+                <div class="pstat-icon">📝</div>
+                <div class="pstat-val">{{ total_marks }}</div>
+                <div class="pstat-label">Mark Records</div>
+            </div>
+            <div class="pstat-card" style="--pc:#22c55e;">
+                <div class="pstat-icon">😴</div>
+                <div class="pstat-val">{{ avg_stats['avg_sleep'] or '—' }}</div>
+                <div class="pstat-label">Avg Sleep (hrs)</div>
+            </div>
+            <div class="pstat-card" style="--pc:#f59e0b;">
+                <div class="pstat-icon">📚</div>
+                <div class="pstat-val">{{ avg_stats['avg_study'] or '—' }}</div>
+                <div class="pstat-label">Avg Study (hrs)</div>
+            </div>
+            <div class="pstat-card" style="--pc:#ef4444;">
+                <div class="pstat-icon">🧠</div>
+                <div class="pstat-val">{{ avg_stats['avg_stress'] or '—' }}</div>
+                <div class="pstat-label">Avg Stress Score</div>
+            </div>
+            <div class="pstat-card" style="--pc:#a78bfa;">
+                <div class="pstat-icon">✅</div>
+                <div class="pstat-val">{{ avg_stats['avg_attendance'] or '—' }}{% if avg_stats['avg_attendance'] %}%{% endif %}</div>
+                <div class="pstat-label">Avg Attendance</div>
+            </div>
+        </div>
+
+        <!-- EDIT PROFILE FORM -->
+        <div class="acad-section" style="margin-top:24px;">
+            <div class="section-title">
+                <span class="section-icon">✏️</span>
+                <h3>Edit Personal Details</h3>
+            </div>
+            <form action="/profile" method="POST" class="profile-form">
+                <div class="profile-form-grid">
+                    <div class="form-group">
+                        <label>🔢 Roll Number</label>
+                        <input type="text" name="roll_no" placeholder="e.g. S24CSEU0490"
+                               value="{{ profile['roll_no'] if profile and profile['roll_no'] else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>🏛️ Branch / Course</label>
+                        <input type="text" name="branch" placeholder="e.g. B.Tech CSE"
+                               value="{{ profile['branch'] if profile and profile['branch'] else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Current Semester</label>
+                        <select name="semester">
+                            {% for i in range(1, 9) %}
+                            <option value="{{ i }}" {% if profile and profile['semester'] == i %}selected{% endif %}>Semester {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📆 Current Year</label>
+                        <select name="year">
+                            {% for i in range(1, 5) %}
+                            <option value="{{ i }}" {% if profile and profile['year'] == i %}selected{% endif %}>Year {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>🏫 College Name</label>
+                        <input type="text" name="college" placeholder="Your college name"
+                               value="{{ profile['college'] if profile and profile['college'] else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>📱 Phone Number</label>
+                        <input type="tel" name="phone" placeholder="e.g. 9876543210"
+                               value="{{ profile['phone'] if profile and profile['phone'] else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>📖 Total Subjects This Semester</label>
+                        <input type="number" name="total_subjects" min="0" max="20"
+                               value="{{ profile['total_subjects'] if profile and profile['total_subjects'] else 0 }}"
+                               placeholder="e.g. 6">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>📝 Bio / About You</label>
+                        <textarea name="bio" rows="2" placeholder="A short note about yourself..."
+                                  style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px;color:#fff;font-family:'Poppins',sans-serif;font-size:.9rem;resize:vertical;width:100%;">{{ profile['bio'] if profile and profile['bio'] else '' }}</textarea>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn" style="margin-top:12px;">Save Profile →</button>
+            </form>
+        </div>
+
+        <!-- SEMESTER MARKS SUMMARY -->
+        {% if sem_marks %}
+        <div class="chart-card" style="margin-top:24px;">
+            <h3>📊 Semester-wise Marks Summary</h3>
+            {% set current_sem_shown = namespace(val=0) %}
+            <div class="sem-summary-container">
+                {% for row in sem_marks %}
+                {% if row['semester'] != current_sem_shown.val %}
+                    {% if current_sem_shown.val != 0 %}</div>{% endif %}
+                    {% set current_sem_shown.val = row['semester'] %}
+                    <div class="sem-block">
+                    <div class="sem-header">📅 Semester {{ row['semester'] }}</div>
+                {% endif %}
+                {% set pct = row['avg_pct'] | round(1) %}
+                {% if pct >= 75 %}{% set sc = '#22c55e' %}
+                {% elif pct >= 50 %}{% set sc = '#f59e0b' %}
+                {% else %}{% set sc = '#ef4444' %}{% endif %}
+                <div class="sem-subject-row">
+                    <span class="sem-subj-name">{{ row['subject_name'][:20] }}</span>
+                    <div class="sem-bar-wrap">
+                        <div class="sem-bar" style="width:{{ pct }}%; background:{{ sc }};"></div>
+                    </div>
+                    <span class="sem-pct" style="color:{{ sc }};">{{ pct }}%</span>
+                    <span class="sem-tests">{{ row['num_tests'] }} test(s)</span>
+                </div>
+                {% endfor %}
+                {% if sem_marks %}</div>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
