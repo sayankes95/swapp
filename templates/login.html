@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SWAPP - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="orb-2"></div>
+    <div class="stickers">
+        <span class="sticker">📚</span><span class="sticker">✏️</span>
+        <span class="sticker">📝</span><span class="sticker">🎒</span>
+        <span class="sticker">📖</span><span class="sticker">🔬</span>
+        <span class="sticker">🧪</span><span class="sticker">📐</span>
+        <span class="sticker">🎯</span><span class="sticker">💡</span>
+    </div>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">🎓</div>
+            <h1 class="auth-title">SWAPP</h1>
+            <p class="auth-subtitle">Student Wellness & Academic Performance Predictor</p>
+
+            {% if error %}
+            <div class="error-msg">⚠️ {{ error }}</div>
+            {% endif %}
+            {% if success %}
+            <div class="success-msg">✅ {{ success }}</div>
+            {% endif %}
+
+            <form action="/login" method="POST" class="auth-form">
+                <div class="form-group">
+                    <label>📧 Email</label>
+                    <input type="email" name="email" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Password</label>
+                    <input type="password" name="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="auth-btn">Login →</button>
+            </form>
+            <p class="auth-switch">Don't have an account? <a href="/register">Register here</a></p>
+        </div>
+    </div>
+</body>
+</html>

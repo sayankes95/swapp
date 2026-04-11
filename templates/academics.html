@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SWAPP - Academic Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="orb-2"></div>
+    <div class="stickers">
+        <span class="sticker">📚</span><span class="sticker">✏️</span>
+        <span class="sticker">📝</span><span class="sticker">🎒</span>
+        <span class="sticker">📖</span><span class="sticker">🔬</span>
+        <span class="sticker">🧪</span><span class="sticker">📐</span>
+        <span class="sticker">🎯</span><span class="sticker">💡</span>
+    </div>
+    <div class="academics-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <h2>🎓 Academic Analytics</h2>
+                <p class="welcome-text">Subject Marks & Performance Insights</p>
+            </div>
+            <div class="nav-links">
+                <a href="/dashboard" class="btn-primary">📊 Dashboard</a>
+                <a href="/add_data" class="btn-outline">+ Add Wellness</a>
+                <a href="/logout" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+
+        {% if success %}<div class="success-msg">✅ {{ success }}</div>{% endif %}
+        {% if error %}<div class="error-msg">⚠️ {{ error }}</div>{% endif %}
+
+        <!-- MARKS ENTRY FORM -->
+        <div class="acad-section">
+            <div class="section-title">
+                <span class="section-icon">📝</span>
+                <h3>Add Subject Marks</h3>
+            </div>
+            <form action="/academics" method="POST" class="marks-form">
+                <div class="marks-form-grid">
+                    <div class="form-group">
+                        <label>📅 Date</label>
+                        <input type="date" name="entry_date" required id="markDate">
+                    </div>
+                    <div class="form-group">
+                        <label>📖 Subject Name</label>
+                        <input type="text" name="subject_name" placeholder="e.g. Mathematics" required maxlength="60" id="subjectName">
+                    </div>
+                    <div class="form-group">
+                        <label>🎯 Exam Type</label>
+                        <select name="exam_type" id="examType">
+                            <option value="Unit Test">Unit Test</option>
+                            <option value="Mid Term">Mid Term</option>
+                            <option value="Final Exam">Final Exam</option>
+                            <option value="Assignment">Assignment</option>
+                            <option value="Quiz">Quiz</option>
+                            <option value="Practical">Practical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📊 Marks Obtained</label>
+                        <input type="number" name="marks" min="0" max="9999" step="0.5" placeholder="e.g. 85" required id="marksObtained">
+                    </div>
+                    <div class="form-group">
+                        <label>📏 Out Of (Max Marks)</label>
+                        <input type="number" name="max_marks" min="1" max="9999" step="0.5" placeholder="e.g. 100" value="100" id="maxMarks">
+                    </div>
+                    <div class="form-group form-group-submit">
+                        <button type="submit" class="submit-btn">Save Marks →</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- STATS ROW -->
+        {% if subjects %}
+        <div class="acad-stats-grid">
+            <div class="acad-stat-card" style="--accent: #ff6eb4;">
+                <div class="acad-stat-icon">📚</div>
+                <div class="acad-stat-value">{{ subjects | length }}</div>
+                <div class="acad-stat-label">Subjects Tracked</div>
+            </div>
+            <div class="acad-stat-card" style="--accent: #00c8ff;">
+                <div class="acad-stat-icon">📝</div>
+                <div class="acad-stat-value">{{ total_entries }}</div>
+                <div class="acad-stat-label">Total Entries</div>
+            </div>
+            <div class="acad-stat-card" style="--accent: #22c55e;">
+                <div class="acad-stat-icon">🏆</div>
+                {% set best = subject_avgs | dictsort(by='value') | list | last %}
+                <div class="acad-stat-value">{{ best[0][:10] }}</div>
+                <div class="acad-stat-label">Best Subject ({{ best[1] }}%)</div>
+            </div>
+            <div class="acad-stat-card" style="--accent: #f59e0b;">
+                <div class="acad-stat-icon">📈</div>
+                {% set all_avgs = subject_avgs.values() | list %}
+                <div class="acad-stat-value">{{ ((all_avgs | sum) / (all_avgs | length)) | round(1) }}%</div>
+                <div class="acad-stat-label">Overall Average</div>
+            </div>
+        </div>
+
+        <!-- Chart 1: Subject Average Bar -->
+        <div class="chart-card">
+            <h3>📊 Subject-wise Performance Overview</h3>
+            <canvas id="subjectBarChart" height="120"></canvas>
+        </div>
+
+        <!-- Chart 2: Per-Subject Trend Lines -->
+        <div class="chart-card" style="margin-top:20px;">
+            <h3>📈 Marks Trend by Subject</h3>
+            {% if subjects | length > 1 %}
+            <div class="subject-legend">
+                {% for subj in subjects %}
+                <span class="subj-pill">{{ subj }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <canvas id="subjectTrendChart" height="130"></canvas>
+        </div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🎓</div>
+            <h4>No marks recorded yet!</h4>
+            <p>Add your first subject marks above to see charts and analytics.</p>
+        </div>
+        {% endif %}
+
+        <!-- Comparison Charts -->
+        {% if cmp_dates %}
+        <div class="section-divider"><span>📉 Wellness vs Marks Comparisons</span></div>
+        <div class="charts-two-col">
+            <div class="chart-card half-chart">
+                <h3>📚 Marks vs Study Hours</h3>
+                <canvas id="marksVsStudyChart" height="200"></canvas>
+            </div>
+            <div class="chart-card half-chart">
+                <h3>😴 Marks vs Sleep Hours</h3>
+                <canvas id="marksVsSleepChart" height="200"></canvas>
+            </div>
+        </div>
+        <div class="charts-two-col" style="margin-top:20px;">
+            <div class="chart-card half-chart">
+                <h3>📱 Marks vs Screen Time</h3>
+                <canvas id="marksVsScreenChart" height="200"></canvas>
+            </div>
+            <div class="chart-card half-chart">
+                <h3>🧠 Marks vs Stress Score</h3>
+                <canvas id="marksVsStressChart" height="200"></canvas>
+            </div>
+        </div>
+        <div class="chart-card" style="margin-top:20px;">
+            <h3>🌊 Overall Marks vs All Wellness Factors</h3>
+            <canvas id="combinedChart" height="120"></canvas>
+        </div>
+        {% endif %}
+
+        <!-- Recent Marks Table -->
+        {% if recent %}
+        <div class="chart-card" style="margin-top:20px;">
+            <h3>📋 Recent Marks History</h3>
+            <div style="overflow-x: auto;">
+                <table class="marks-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th><th>Subject</th><th>Exam Type</th>
+                            <th>Marks</th><th>%</th><th>Grade</th><th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in recent %}
+                        {% set pct = ((row['marks'] / row['max_marks']) * 100) | round(1) %}
+                        {% if pct >= 90 %}{% set grade = 'A+' %}{% set gcol = '#22c55e' %}
+                        {% elif pct >= 75 %}{% set grade = 'A' %}{% set gcol = '#3b82f6' %}
+                        {% elif pct >= 60 %}{% set grade = 'B' %}{% set gcol = '#f59e0b' %}
+                        {% elif pct >= 45 %}{% set grade = 'C' %}{% set gcol = '#f97316' %}
+                        {% else %}{% set grade = 'F' %}{% set gcol = '#ef4444' %}{% endif %}
+                        <tr>
+                            <td class="td-date">{{ row['date'] }}</td>
+                            <td class="td-subject">{{ row['subject_name'] }}</td>
+                            <td class="td-type"><span class="type-badge">{{ row['exam_type'] }}</span></td>
+                            <td class="td-marks">{{ row['marks'] }}/{{ row['max_marks'] }}</td>
+                            <td class="td-pct" style="color: {{ gcol }}; font-weight:700;">{{ pct }}%</td>
+                            <td class="td-grade" style="color: {{ gcol }};">{{ grade }}</td>
+                            <td class="td-action">
+                                <form action="/delete_mark/{{ row['id'] }}" method="POST" onsubmit="return confirm('Delete this entry?')">
+                                    <button type="submit" class="del-btn">🗑</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if subjects %}
+    <script>
+        const PALETTE = ['#ff6eb4','#00c8ff','#7928ca','#22c55e','#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#f97316'];
+        const chartDefaults = {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#aaa', font: { family: 'Poppins', size: 12 } } } },
+            scales: {
+                x: { ticks: { color: '#777', font: { family: 'Poppins', size: 11 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                y: { ticks: { color: '#777', font: { family: 'Poppins', size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+            }
+        };
+        const subjectNames  = {{ subject_avgs.keys()   | list | tojson }};
+        const subjectScores = {{ subject_avgs.values() | list | tojson }};
+        const barCtx = document.getElementById('subjectBarChart').getContext('2d');
+        new Chart(barCtx, { type:'bar', data:{ labels:subjectNames, datasets:[{
+            label:'Average %', data:subjectScores,
+            backgroundColor: subjectNames.map((_,i)=>PALETTE[i%PALETTE.length]+'bb'),
+            borderColor: subjectNames.map((_,i)=>PALETTE[i%PALETTE.length]),
+            borderWidth:2, borderRadius:8, borderSkipped:false
+        }]}, options:{...chartDefaults, scales:{...chartDefaults.scales, y:{...chartDefaults.scales.y, min:0, max:100, ticks:{...chartDefaults.scales.y.ticks, callback:v=>v+'%'}}}}});
+
+        const subjectData = {{ subjects | tojson }};
+        const allDates = [...new Set(Object.values(subjectData).flatMap(d=>d.dates))].sort();
+        const trendDatasets = Object.entries(subjectData).map(([subj,d],i)=>({
+            label:subj, spanGaps:true,
+            data: allDates.map(date=>{ const idx=d.dates.indexOf(date); return idx!==-1?d.percentages[idx]:null; }),
+            borderColor:PALETTE[i%PALETTE.length], backgroundColor:'transparent',
+            borderWidth:2.5, tension:0.4,
+            pointBackgroundColor:PALETTE[i%PALETTE.length], pointBorderColor:'#1a1a2e', pointBorderWidth:2, pointRadius:5
+        }));
+        const trendCtx = document.getElementById('subjectTrendChart').getContext('2d');
+        new Chart(trendCtx, { type:'line', data:{ labels:allDates, datasets:trendDatasets },
+            options:{...chartDefaults, scales:{...chartDefaults.scales, y:{...chartDefaults.scales.y, min:0, max:100, ticks:{...chartDefaults.scales.y.ticks, callback:v=>v+'%'}}}}});
+    </script>
+    {% endif %}
+
+    {% if cmp_dates %}
+    <script>
+        const cmpDates  = {{ cmp_dates  | tojson }};
+        const cmpMarks  = {{ cmp_marks  | tojson }};
+        const cmpStudy  = {{ cmp_study  | tojson }};
+        const cmpSleep  = {{ cmp_sleep  | tojson }};
+        const cmpScreen = {{ cmp_screen | tojson }};
+        const cmpStress = {{ cmp_stress | tojson }};
+        function dualLineChart(canvasId,label1,data1,color1,label2,data2,color2){
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            new Chart(ctx,{ type:'line', data:{ labels:cmpDates, datasets:[
+                { label:label1, data:data1, borderColor:color1, backgroundColor:'transparent', borderWidth:2.5, tension:0.4, pointBackgroundColor:color1, pointBorderColor:'#1a1a2e', pointBorderWidth:2, pointRadius:5, yAxisID:'y' },
+                { label:label2, data:data2, borderColor:color2, backgroundColor:'transparent', borderWidth:2, borderDash:[5,5], tension:0.4, pointBackgroundColor:color2, pointBorderColor:'#1a1a2e', pointBorderWidth:2, pointRadius:4, yAxisID:'y1' }
+            ]}, options:{ responsive:true, interaction:{mode:'index',intersect:false},
+                plugins:{legend:{labels:{color:'#aaa',font:{family:'Poppins',size:11}}}},
+                scales:{
+                    x:{ticks:{color:'#777',font:{family:'Poppins',size:10}},grid:{color:'rgba(255,255,255,0.03)'}},
+                    y:{type:'linear',position:'left',ticks:{color:color1,font:{family:'Poppins',size:10}},grid:{color:'rgba(255,255,255,0.03)'}},
+                    y1:{type:'linear',position:'right',ticks:{color:color2,font:{family:'Poppins',size:10}},grid:{drawOnChartArea:false}}
+                }
+            }});
+        }
+        dualLineChart('marksVsStudyChart','Marks (%)',cmpMarks,'#ff6eb4','Study Hrs',cmpStudy,'#00c8ff');
+        dualLineChart('marksVsSleepChart','Marks (%)',cmpMarks,'#ff6eb4','Sleep Hrs',cmpSleep,'#22c55e');
+        dualLineChart('marksVsScreenChart','Marks (%)',cmpMarks,'#ff6eb4','Screen Hrs',cmpScreen,'#f97316');
+        dualLineChart('marksVsStressChart','Marks (%)',cmpMarks,'#ff6eb4','Stress',cmpStress,'#ef4444');
+        const combinedCtx = document.getElementById('combinedChart').getContext('2d');
+        new Chart(combinedCtx,{ type:'line', data:{ labels:cmpDates, datasets:[
+            { label:'Marks (%)', data:cmpMarks, borderColor:'#ff6eb4', borderWidth:3, tension:0.4, fill:false, pointRadius:5, pointBackgroundColor:'#ff6eb4', pointBorderColor:'#1a1a2e', pointBorderWidth:2 },
+            { label:'Study Hrs', data:cmpStudy, borderColor:'#00c8ff', borderWidth:2, tension:0.4, fill:false, borderDash:[4,4], pointRadius:3 },
+            { label:'Sleep Hrs', data:cmpSleep, borderColor:'#22c55e', borderWidth:2, tension:0.4, fill:false, borderDash:[4,4], pointRadius:3 },
+            { label:'Screen Hrs', data:cmpScreen, borderColor:'#f97316', borderWidth:2, tension:0.4, fill:false, borderDash:[4,4], pointRadius:3 },
+            { label:'Stress', data:cmpStress, borderColor:'#ef4444', borderWidth:2, tension:0.4, fill:false, borderDash:[4,4], pointRadius:3 }
+        ]}, options:{ responsive:true, interaction:{mode:'index',intersect:false},
+            plugins:{legend:{labels:{color:'#aaa',font:{family:'Poppins',size:11}}}},
+            scales:{ x:{ticks:{color:'#777',font:{family:'Poppins',size:10}},grid:{color:'rgba(255,255,255,0.03)'}}, y:{ticks:{color:'#777',font:{family:'Poppins',size:10}},grid:{color:'rgba(255,255,255,0.04)'}} }
+        }});
+    </script>
+    {% endif %}
+    <script>
+        document.getElementById('markDate').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
